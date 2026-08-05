@@ -1,2 +1,10 @@
 # fedora_setup
-Setup pós instalação para Fedora Linux.
+
+Script para configuração do sistema Fedora Linux após sua instalação, baseado em meu uso do sistema.
+
+## Como usar
+
+```shell
+sudo ./fedora_setup.sh
+```
+
