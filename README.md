@@ -5,6 +5,6 @@ Script para configuração do sistema Fedora Linux após sua instalação, basea
 ## Como usar
 
 ```shell
-sudo ./fedora_setup.sh
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/luizgfdelima/fedora_setup/refs/heads/main/fedora_setup.sh)"
 ```
 
