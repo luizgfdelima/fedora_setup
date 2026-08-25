@@ -25,43 +25,69 @@ NEGRITO="\033[1m"
 RPM_FREE="https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
 RPM_NON_FREE="https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
 DIRETORIO_APPIMAGES="./downloaded_appimages"
+REPOSITORIOS_EXTRAS=(
+	https://repo.vivaldi.com/archive/vivaldi-fedora.repo
+)
 PROGRAMAS_DNF=(
 	fuse-libs
-	btop
 	make
 	git
-	bat
-	neovim
-	tealdeer
+	chromium
+	vivaldi
+	steam
+	code
+	qbittorrent
+	syncthing
+	goverlay
+	mangohud
+	pavucontrol
+	obs
+	haruna
+	btop
+	btrfs-assistant
 	distrobox
 	docker
-	podman
 	docker-compose
+	podman
 	podman-compose
-	steam
-	chromium
-	pavucontrol
+	micro
+	yazi
+	bat
+	tealdeer
+	klassy
+	fastfetch
+	@virtualization
 )
 PROGRAMAS_FLATPAK=(
 	it.mijorus.gearlever
-	com.github.tchx84.Flatseal
+	org.localsend.localsend_app
+	com.vysp3r.ProtonPlus
+	com.bitwarden.desktop
 	com.ranfdev.DistroShelf
+	com.github.tchx84.Flatseal
+	com.github.Matoking.protontricks
+	
 )
 APPIMAGES=(
 	https://github.com/obsidianmd/obsidian-releases/releases/download/v1.13.4/Obsidian-1.13.4.AppImage
-	https://github.com/marktext/marktext/releases/download/v0.19.1/marktext-linux-0.19.1.AppImage
+	https://github.com/ElyPrismLauncher/Launcher/releases/download/11.0.3/PineconeMC-Linux-x86_64.AppImage
 )
 
 # TESTES E REQUISITOS ==============================================================================
 
+set -euo pipefail
+
 if (( $EUID != 0 )); then
-	echo -e "${NEGRITO}${FUNDO_VERMELHO}Por favor, execute o script com permissões elevadas de administrador.${SEM_FORMAT}"
-	exit 1
+	exec sudo "$0" "$@"
+fi
+
+if [[ -d ./fedora_setup-stdout.log && ./fedora_setup-stderr.log ]]; then
+	sudo -u "$SUDO_USER" -- touch ./fedora_setup-stdout.log ./fedora_setup-stderr.log
 fi
 
 echo -e "Verificando conexão com a Internet..."
-if ! ping -c 4 8.8.8.8 -q >> ./fedora_setup-stdout.log 2>> ./fedora_setup-stderr.log; then
-	echo -e  "${NEGRITO}${FUNDO_VERMELHO}Erro! A conexão com a Internet está indisponível ou foi interrompida.${SEM_FORMAT}"
+if ! ping -c 4 "google.com" -q >> ./fedora_setup-stdout.log 2>> ./fedora_setup-stderr.log; then
+	echo -e  "${NEGRITO}${FUNDO_VERMELHO}Erro! A conexão com a Internet está indisponível ou foi interrompida.${SEM_FORMAT}" 2>> ./fedora_setup-stderr.log
 	exit 1
 else
 	echo -e "${NEGRITO}${VERDE}Conexão com a Internet estabelecida.${SEM_FORMAT}"
@@ -130,6 +156,19 @@ configurar_flatpaks () {
 	fi
 }
 
+# REPOSITORIOS EXTRAS ==============================================================================
+
+repositorios_extras () {
+	echo -e "Adicionando repositórios extras..."
+	for repo in ${REPOSITORIOS_EXTRAS[@]}; do
+		dnf config-manager addrepo --from-repofile=$repo
+		echo -e "O repositório ${NEGRITO}${VERDE}$repo${SEM_FORMAT} foi adicionado."
+		if [[ $? -eq 1 ]]; then
+			echo -e "O repositório ${NEGRITO}$repo${SEM_FORMAT} já está adicionado."
+		fi
+	done
+}
+
 # CODECS ==============================================================================
 
 instalar_codecs () {
@@ -176,32 +215,33 @@ instalar_programas_flatpak () {
 baixar_appimages () {
 	echo -e "Baixando arquivos AppImage:"
 	if [[ ! -d "$DIRETORIO_APPIMAGES" ]]; then
-		mkdir -m 777 "$DIRETORIO_APPIMAGES" && cd "$DIRETORIO_APPIMAGES"
-		echo -e "Pasta de downloads criada em ${NEGRITO}$DIRETORIO_APPIMAGES${SEM_FORMAT}."
+		sudo -u "$SUDO_USER" -- mkdir "$DIRETORIO_APPIMAGES" && cd "$DIRETORIO_APPIMAGES"
 	elif [[ -d "$DIRETORIO_APPIMAGES" ]]; then
 		cd "$DIRETORIO_APPIMAGES"
 	fi
 
 	for url in ${APPIMAGES[@]}; do
 		echo -e "Baixando arquivo de \"$url\""
-		curl -w "%{filename_effective}\n" -LO $url
+		sudo -u "$SUDO_USER" -- curl -w "%{filename_effective}\n" -LO $url >> ../fedora_setup-stdout.log 2>> ../fedora_setup-stderr.log
 	done
 
 	chmod +x *
 
+	cd ..
+
 	echo -e "Arquivos salvos em ${NEGRITO}$DIRETORIO_APPIMAGES${SEM_FORMAT}."
 }
 
-# EXECUÇÃO ==============================================================================
+# EXECUCAO ==============================================================================
 
 echo -e "${NEGRITO}Iniciando setup pós instalação:${SEM_FORMAT}"
-touch ./fedora_setup-stdout.log ./fedora_setup-stderr.log
 atualizar_firmware
 instalar_group_core
 atualizar_sistema
 instalar_codecs
 instalar_rpm_fusion
 configurar_flatpaks
+repositorios_extras
 instalar_programas_dnf
 instalar_programas_flatpak
 baixar_appimages
