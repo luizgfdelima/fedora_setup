@@ -75,7 +75,7 @@ APPIMAGES=(
 
 # TESTES E REQUISITOS ==============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 if (( $EUID != 0 )); then
 	exec sudo "$0" "$@"
